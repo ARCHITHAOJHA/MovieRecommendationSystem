@@ -10,7 +10,14 @@ from pathlib import Path
 
 load_dotenv()
 
-API_KEY = os.getenv("OMDB_API_KEY")
+
+def get_omdb_api_key():
+    if "OMDB_API_KEY" in st.secrets:
+        return str(st.secrets["OMDB_API_KEY"]).strip()
+    return os.getenv("OMDB_API_KEY", "").strip()
+
+
+API_KEY = get_omdb_api_key()
 PLACEHOLDER_POSTER = "https://placehold.co/300x450?text=No+Poster"
 WIKIPEDIA_HEADERS = {"User-Agent": "Mozilla/5.0"}
 st.set_page_config(layout="wide")
