@@ -44,8 +44,6 @@ def generate_data_files():
     if Path('movie_dict.pkl').exists() and Path('similarity.pkl').exists():
         return
     
-    st.info("🔄 Generating data files... This may take a moment on first load.")
-    
     try:
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.metrics.pairwise import cosine_similarity
@@ -97,8 +95,6 @@ def generate_data_files():
         movie_dict = movie_features[['movie_id', 'title']].reset_index(drop=True).to_dict()
         pickle.dump(movie_dict, open('movie_dict.pkl', 'wb'))
         pickle.dump(similarity, open('similarity.pkl', 'wb'))
-        
-        st.success("✅ Data files generated successfully!")
     except Exception as e:
         st.error(f"Error generating data files: {str(e)}")
         raise
