@@ -1,0 +1,11 @@
+.env
+*.pkl
+*.pickle
+__pycache__/
+.ipynb_checkpoints/
+MovieRS/similarity.pkl
+MovieRS/movies.pkl
+MovieRS/movie_dict.pkl
+movie_dict.pkl
+movies.pkl
+similarity.pkl
