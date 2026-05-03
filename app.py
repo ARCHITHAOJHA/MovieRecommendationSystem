@@ -5,6 +5,8 @@ import requests
 from dotenv import load_dotenv
 import os
 from urllib.parse import quote
+import ast
+from pathlib import Path
 
 load_dotenv()
 
@@ -37,9 +39,74 @@ h1 { color: #E50914; text-align: center; }
 # 🎬 Title
 st.markdown("<h1>🎬 Movie Recommendation System</h1>", unsafe_allow_html=True)
 
+# 🔧 Generate pickle files from CSVs if they don't exist
+def generate_data_files():
+    if Path('movie_dict.pkl').exists() and Path('similarity.pkl').exists():
+        return
+    
+    st.info("🔄 Generating data files... This may take a moment on first load.")
+    
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+        
+        # Read CSVs
+        credits = pd.read_csv('MovieRS/tmdb_5000_credits.csv')
+        movies = pd.read_csv('MovieRS/tmdb_5000_movies.csv')
+        
+        # Merge datasets
+        movies_data = movies.merge(credits, on='title')
+        
+        # Select and clean data
+        movie_features = movies_data[['movie_id', 'title', 'overview', 'genres', 'keywords', 'cast', 'crew']].copy()
+        movie_features.dropna(inplace=True)
+        
+        # Parse JSON-like strings
+        def parse_json_column(obj):
+            try:
+                items = ast.literal_eval(obj)
+                return ' '.join([item['name'] for item in items])
+            except:
+                return ''
+        
+        def parse_cast(obj):
+            try:
+                items = ast.literal_eval(obj)
+                return ' '.join([item['name'] for item in items[:3]])  # Top 3 cast members
+            except:
+                return ''
+        
+        movie_features['genres'] = movie_features['genres'].apply(parse_json_column)
+        movie_features['keywords'] = movie_features['keywords'].apply(parse_json_column)
+        movie_features['cast'] = movie_features['cast'].apply(parse_cast)
+        
+        # Combine features for similarity calculation
+        movie_features['tags'] = (
+            movie_features['overview'] + ' ' + 
+            movie_features['genres'] + ' ' + 
+            movie_features['keywords'] + ' ' + 
+            movie_features['cast']
+        )
+        
+        # Calculate similarity matrix
+        vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
+        tfidf_matrix = vectorizer.fit_transform(movie_features['tags'])
+        similarity = cosine_similarity(tfidf_matrix)
+        
+        # Save as pickle files
+        movie_dict = movie_features[['movie_id', 'title']].reset_index(drop=True).to_dict()
+        pickle.dump(movie_dict, open('movie_dict.pkl', 'wb'))
+        pickle.dump(similarity, open('similarity.pkl', 'wb'))
+        
+        st.success("✅ Data files generated successfully!")
+    except Exception as e:
+        st.error(f"Error generating data files: {str(e)}")
+        raise
+
 # ✅ Load Data
 @st.cache_data
 def load_data():
+    generate_data_files()
     movies_dict = pickle.load(open('movie_dict.pkl', 'rb'))
     movies = pd.DataFrame(movies_dict)
     similarity = pickle.load(open('similarity.pkl', 'rb'))
